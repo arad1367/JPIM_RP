@@ -472,8 +472,9 @@ def main():
     log("  wrote data_integrity_report.txt")
 
     section("DONE")
-    log("data_integrity_report.txt, appendix_b_frequencies.csv,")
-    log("console output ready. Then run 02_analysis.py.")
+    log("Outputs: Wasko_Final_Dataset_ENRICHED.csv, appendix_b_frequencies.csv,")
+    log("data_integrity_report.txt, and validation_samples/.")
+    log("Next: 02_analysis.py")
 
 
 if __name__ == "__main__":
