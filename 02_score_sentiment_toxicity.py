@@ -281,8 +281,8 @@ def export_appendix_frequencies(df, outdir):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--input", required=True)
-    ap.add_argument("--outdir", default="output")
+    ap.add_argument("--input", default="/content/drive/MyDrive/Wasko_JPIM/data/Wasko_Final_Dataset_FINAL_CLEAN.csv")
+    ap.add_argument("--outdir", default="/content/drive/MyDrive/Wasko_JPIM/data")
     ap.add_argument("--scope", choices=["all", "confirmed"], default="all")
     ap.add_argument("--device", default="auto",
                     choices=["auto", "cuda", "mps", "cpu"])
@@ -474,7 +474,7 @@ def main():
     section("DONE")
     log("Outputs: Wasko_Final_Dataset_ENRICHED.csv, appendix_b_frequencies.csv,")
     log("data_integrity_report.txt, and validation_samples/.")
-    log("Next: 02_analysis.py")
+    log("Next: 03_recode_residual_cases.py")
 
 
 if __name__ == "__main__":

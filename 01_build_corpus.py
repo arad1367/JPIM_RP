@@ -8,7 +8,7 @@ from tqdm import tqdm
 from datasets import load_dataset
 from transformers import pipeline
 
-TARGET_DIR = "/content/drive/MyDrive/WASKO JPIM"
+TARGET_DIR = "/content/drive/MyDrive/Wasko_JPIM/data"
 MAX_CHARS = 3000
 CHUNK_SIZE = 5000
 CLASSIFIER = "Qwen/Qwen2.5-3B-Instruct"

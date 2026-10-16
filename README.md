@@ -4,57 +4,102 @@
 
 # JPIM_RP — Guardrails, Refusal Rhetoric, and User Backlash
 
-Replication package for the field study of user responses to LLM refusals, based
-on [LMSYS-Chat-1M](https://huggingface.co/datasets/lmsys/lmsys-chat-1m).
+Replication package for the field study of how users respond to refusals by large
+language models, based on
+[LMSYS-Chat-1M](https://huggingface.co/datasets/lmsys/lmsys-chat-1m).
 
 ```bash
 git clone https://github.com/arad1367/JPIM_RP.git
 cd JPIM_RP
 ```
 
-> **Status: manuscript under review.** This repository contains the analysis code
-> only. Result tables, figures, and the manuscript are withheld until the paper
+> **Status: manuscript under review.** This repository contains the analysis
+> code. Result tables, figures and the manuscript are withheld until the paper
 > is accepted and will be added here on publication.
+
+---
+
+## The study in one paragraph
+
+One million human–LLM conversations were screened for refusals, yielding 12,170
+verified refusal episodes across 25 deployed systems and 95 languages. For each
+episode we code three rhetorical features of the refusal — whether it declares
+the system to be an AI, whether it justifies the boundary in moral terms, and
+whether it apologises — and whether the user's next turn resists the refusal.
+The analysis asks whether declaring AI identity provokes resistance, and whether
+that depends on the rhetoric surrounding it.
 
 ---
 
 ## Data availability
 
-**The coded datasets are not hosted in this repository.** The source corpus was
-deliberately left uncleaned by its authors, so the request and follow-up fields
-contain unsafe, offensive, and explicit language — these are precisely the
-exchanges in which guardrails trigger, and removing them would destroy the
-phenomenon under study. GitHub's content filters block a commit of files in this
-form, so the derived datasets are distributed on request instead.
+**The coded datasets are not hosted here.** The source corpus was deliberately
+left uncleaned by its authors, so the request and follow-up fields contain
+unsafe, offensive and explicit language — these are precisely the exchanges in
+which guardrails trigger, and removing them would destroy the phenomenon under
+study. GitHub's content filters block a commit of files in this form.
 
-The source corpus is publicly available and can be obtained directly:
+The source corpus is public and gated by its authors:
 
 **https://huggingface.co/datasets/lmsys/lmsys-chat-1m**
 
-Access is gated by the corpus authors and requires accepting their terms. With
-that access, `00_build_corpus.py` in this repository regenerates the base dataset
-from scratch, and `01_build_dataset.py` regenerates the analysis dataset from it.
-Every stage is deterministic, so the reconstruction is exact.
-
-The two derived files — `Wasko_Final_Dataset_FINAL_CLEAN_1507.csv` (51,186
-episodes, 38 variables) and `Wasko_Final_Dataset_ENRICHED.csv` (the same rows
-with sentiment, toxicity, and control variables appended, 52 variables) — are
-available to reviewers and editors on request. Please contact the corresponding
-author using the addresses below.
-
-The analysis sample is the 12,185 episodes where `is_actual_refusal` is `TRUE`.
+With that access the pipeline below regenerates every derived dataset from
+scratch. Every stage is deterministic, so the reconstruction is exact. The
+derived datasets are also available directly from the corresponding author on
+request.
 
 ---
 
-## Contents
+## Pipeline
 
-| File | Description |
-|---|---|
-| `00_build_corpus.py` | Screens the 1M-conversation corpus for refusal episodes, codes the fourteen rhetorical features, runs the classification tasks, and applies quality control. Produces the base dataset. |
-| `01_build_dataset.py` | Adds follow-up sentiment and request toxicity, builds the control variables, and exports coding-validation samples. |
-| `02_analysis.py` | Descriptives, the focal logistic regression models, predictive margins, and the robustness models with additional controls. |
-| `03_supplementary.py` | Identification diagnostics: per-model cell counts, restricted samples, random-intercept and GEE estimators, cluster bootstrap, leave-one-model-out, and alternative outcome definitions. |
-| `requirements.txt` | Python dependencies for scripts 01–03. |
+Run in order. Scripts 1 to 4 build the data; 5 to 7 produce the results.
+
+| # | Script | Reads | Writes |
+|---|---|---|---|
+| 1 | `01_build_corpus.py` | LMSYS-Chat-1M (HuggingFace) | `Wasko_Final_Dataset_FINAL_CLEAN.csv` |
+| 2 | `02_score_sentiment_toxicity.py` | output of 1 | `Wasko_Final_Dataset_ENRICHED.csv` |
+| 3 | `03_recode_residual_cases.py` | output of 2 | `Wasko_Final_Dataset_RECODED.csv` |
+| 4 | `04_score_severity.py` | output of 3 | `Wasko_Final_Dataset_ANALYSIS.csv` |
+| 5 | `05_analysis.py` | output of 4 | Tables 1–5, Figure 2 margins |
+| 6 | `06_supplementary.py` | output of 4 | identification diagnostics |
+| 7 | `07_figure2.py` | margins from 5 | Figure 2 (PNG, PDF, TIFF) |
+
+What each stage does:
+
+1. **Build corpus.** Screens all one million conversations against the refusal
+   marker dictionary, assembles refusal episodes, codes fourteen rhetorical
+   features by pattern matching, classifies refusal validity, request category
+   and user follow-up behaviour with Qwen2.5-3B-Instruct, and applies quality
+   control.
+2. **Sentiment and toxicity.** Scores follow-up sentiment and request toxicity
+   with pretrained multilingual classifiers, and builds the control variables.
+   Also exports stratified coding-validation samples.
+3. **Residual cases.** Applies the verified re-coding of the 163 episodes the
+   second-stage classifier could not label, and removes the episodes containing
+   an automated platform moderation notice in the user-turn position.
+4. **Severity.** Scores how harmful compliance would be, using four independent
+   yes–no threshold questions put to Qwen2.5-14B-Instruct. Runs self-tests and a
+   piloted quality gate before scoring the full sample, and writes nothing if
+   either fails.
+5. **Analysis.** Descriptives, the focal logistic regressions, predictive
+   margins, the robustness models, and follow-up sentiment as a secondary
+   outcome.
+6. **Supplementary.** Per-system cell counts, restricted samples, GEE, cluster
+   bootstrap, leave-one-system-out, language splits, alternative outcome
+   definitions and alternative severity specifications.
+7. **Figure.** Draws Figure 2 from the margins written by step 5.
+
+Paths default to the layout below; override any of them with `--input` and
+`--outdir`.
+
+```
+Wasko_JPIM/
+├── data/      produced by steps 1–4
+└── output/
+    ├── results/
+    ├── results_supplementary/
+    └── figures/
+```
 
 ---
 
@@ -69,99 +114,54 @@ python -m pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
 ```
 
-On Python 3.13, upgrade `setuptools` before installing — 3.13 no longer bundles
-it, and several packages fail to build without it.
+Steps 1, 2 and 4 require a CUDA GPU and were run on an NVIDIA A100. Steps 5 to 7
+need no GPU and complete in a few minutes. Step 1 additionally requires
+`datasets` and `huggingface_hub`, plus a token with access to the gated corpus.
 
-`00_build_corpus.py` additionally requires `datasets` and `huggingface_hub`, plus
-a CUDA GPU. It was run on an NVIDIA A100.
-
-Scripts 01 and 03 benefit from a GPU but run on CPU. Script 02 needs no GPU and
-completes in under a minute.
-
----
-
-## Reproducing the results
-
-**Step 1 — build the corpus from LMSYS-Chat-1M**
-
-```bash
-python 00_build_corpus.py
-```
-
-Set `TARGET_DIR` at the top of the file first. Requires a HuggingFace token with
-access to `lmsys/lmsys-chat-1m`. Several hours on a GPU; each stage checkpoints,
-so an interrupted run resumes. Output: `Wasko_Final_Dataset_FINAL_CLEAN.csv` and
-`Wasko_Final_Dataset_FINAL_FLAGGED.csv` (the rows removed by quality control).
-
-**Step 2 — add sentiment, toxicity, and controls**
-
-```bash
-python 01_build_dataset.py \
-    --input Wasko_Final_Dataset_FINAL_CLEAN.csv \
-    --outdir output
-```
-
-Roughly 15–30 minutes on a GPU. Use `--scope confirmed` to score only the
-analysis sample when running on CPU. Output: `Wasko_Final_Dataset_ENRICHED.csv`,
-coding-validation samples, and a data-integrity report.
-
-**Step 3 — run the analysis**
-
-```bash
-python 02_analysis.py \
-    --input output/Wasko_Final_Dataset_ENRICHED.csv \
-    --outdir results
-
-python 03_supplementary.py \
-    --input output/Wasko_Final_Dataset_ENRICHED.csv \
-    --outdir results_supplementary
-```
-
-Script 02 verifies its own output against the published coefficients and prints a
-pass/fail line for each. Script 03's cluster bootstrap defaults to 1,000
-replications; change it with `--boot`.
+Most users should start at step 5 with the derived dataset obtained from the
+corresponding author, since steps 1 to 4 require gated corpus access and several
+hours of GPU time.
 
 ---
 
-## Determinism
+## Reproducibility
 
 Every stage is deterministic and reproduces exactly on rerun:
 
-- Pattern matching is plain case-insensitive substring matching.
-- The classifier (`Qwen2.5-3B-Instruct`) uses greedy decoding.
-- Sentiment and toxicity models run in inference mode with fixed weights.
-- Sampling for validation files and the cluster bootstrap uses a fixed seed.
+- Rhetorical features are coded by plain case-insensitive substring matching.
+- The classification model uses greedy decoding.
+- Severity is scored by reading the model's probability over the two answer
+  tokens at a single forward pass, with no sampling. Each question is asked in
+  both answer orders and the probabilities averaged, so option position cannot
+  drive the rating.
+- Sentiment and toxicity use pretrained classifiers in inference mode.
+- The cluster bootstrap and all sampling use a fixed seed.
 
-Applying the feature dictionaries in `00_build_corpus.py` to the derived dataset
-reproduces the stored flags for all fourteen features across the 12,185 analysis
-episodes, with a single exception arising from an apostrophe variant.
+Step 4 verifies itself before doing any work: it checks that scores are
+invariant to batching, that it recovers known answers including three cases
+designed to catch confounds, and that it passes three pre-specified quality
+gates on a stratified pilot. It exits without writing if any check fails.
 
 ---
 
 ## Known data issues
 
-1. **`is_actual_refusal` is stored as text.** Two of the 51,186 rows carry a
-   malformed value: one is `X`, one contains leaked generation text. Neither is
-   in the analysis sample, so no reported result is affected. Both are listed in
-   the data-integrity report produced by `01_build_dataset.py`.
-
-2. **`prompt_category` and `refusal_type` are deterministically related.**
-   `value_violation` corresponds exactly to `value_based_refusal`. The two can
+1. **`is_actual_refusal` is stored as text.** Two of the 51,186 screened rows
+   carry a malformed value. Neither is in the analysis sample.
+2. **Fifteen episodes contain an automated platform moderation notice** in the
+   user-turn position rather than a user message. They record no user behaviour
+   and are excluded, giving an analysis sample of 12,170.
+3. **`prompt_category` and `refusal_type` are deterministically related.**
+   `value_violation` corresponds exactly to `value_based_refusal`, so the two
    never enter the same model.
-
-3. **`value_violation` is a residual category.** It is the mapped form of the
-   classifier's `not_instrumental` output, not a substantive judgment that the
-   request violated a value.
-
-4. **`uncategorized` is a parsing residual.** It is assigned when the
-   classifier's output matches none of the permitted labels, not when the
-   follow-up was itself unclassifiable in substance.
-
+4. **`value_violation` is a residual category.** It is the mapped form of the
+   classifier's `not_instrumental` output and consists largely of ordinary
+   conversational exchanges, not of requests judged to violate a value.
 5. **The screening dictionary overlaps two coded features.** `as an ai`,
-   `i apologize`, and `i'm sorry` are both screening markers and feature
-   markers, so the corpus is selected partly on the AI-identity disclaimer and
-   the apology. Reported base rates for these two features are conditional on
-   the screen and are not population prevalence estimates. Comparisons between
+   `i apologize` and `i'm sorry` are both screening markers and feature markers,
+   so the corpus is selected partly on the AI-identity disclaimer and the
+   apology. Reported base rates for those two features are conditional on the
+   screen and are not population prevalence estimates. Comparisons between
    refusals with and without a feature are unaffected.
 
 ---
@@ -172,7 +172,7 @@ Person names in the source corpus were replaced with placeholders (`NAME_1`,
 `NAME_2`, …) by the corpus authors before release. No additional
 de-identification was applied. All users of the original platform consented to
 research use of their conversations through the platform's terms of use. This
-study analyzes only publicly released data and involved no interaction with
+study analyses only publicly released data and involved no interaction with
 human participants.
 
 ---
@@ -188,7 +188,7 @@ Source corpus:
 > LMSYS-Chat-1M: A large-scale real-world LLM conversation dataset.
 > arXiv:2309.11998.
 
-Classifier:
+Classification and severity scoring:
 
 > Yang, A., Yang, B., Zhang, B., Hui, B., Zheng, B., Yu, B., et al. (2024).
 > Qwen2.5 technical report. arXiv:2412.15115.
@@ -203,6 +203,3 @@ Classifier:
 - pejman.ebrahimi77@gmail.com
 - GitHub: [arad1367](https://github.com/arad1367)
 - Hugging Face: [arad1367](https://huggingface.co/arad1367)
-
-Requests for the derived datasets, and questions about the code, are welcome at
-either address.
